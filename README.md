@@ -3,5 +3,5 @@
 parkrun Chelyabinsk
 parkrun Kazan Central
 Kimberley parkrun
-4. Run parser: npm start
+4. Run parser with output log: npm start > out.log
 5. See results in folder ./out
