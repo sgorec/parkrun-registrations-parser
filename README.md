@@ -1,9 +1,7 @@
-1. npm install
-2. npm run
-3. create file with name content-desctiption.txt
-4. push into file content like this:
+1. Instal dependencies: npm install
+3. Create file with name content-descriptors.txt with content like this:
 parkrun Chelyabinsk
 parkrun Kazan Central
 Kimberley parkrun
-5. exec at console: node start
-6. results must be contains in folder ./out
+4. Run parser: npm start
+5. See results in folder ./out
