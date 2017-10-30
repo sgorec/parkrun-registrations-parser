@@ -1,5 +1,5 @@
 var cheerio = require('cheerio');
-var request = require('request-promise');
+var request = require('request');
 var fs = require('fs');
 var path = require('path');
 
