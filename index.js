@@ -1,96 +1,86 @@
-const cheerio = require('cheerio');
-const request = require('request-promise');
-const fs = require('fs');
-const path = require('path');
+var cheerio = require('cheerio');
+var request = require('request-promise');
+var fs = require('fs');
+var path = require('path');
 
-const options = {
-    uri: 'http://wiki.parkrun.info/index.php/Registrations_this_Week',
-    transform: (body) => cheerio.load(body)
-};
+console.log('>> Load content descriptors.');
 
-console.log(`>> Load content descriptors.`);
+var contentDescriptors = fs.readFileSync(path.join(__dirname, './content-descriptors.txt'))
+	.toString()
+	.split(/\n|\r/)
+	.filter(function(string) { return !!string.trim(); });
 
-let contentDescriptors = fs.readFileSync(path.join(__dirname, './content-descriptors.txt')).toString().split(/\n|\r/);
+console.log('<< Loaded %s descriptors.', contentDescriptors.length);
 
-console.log(`<< Loaded ${contentDescriptors.length} descriptors.`);
-
-let contentCheckers = contentDescriptors.map((descriptor) => {
-	let regex = new RegExp(escapeRegExp(descriptor.trim()), 'i');
+var contentCheckers = contentDescriptors.map(function(descriptor) {
+	var regex = new RegExp(escapeRegExp(descriptor.trim()), 'i');
 	console.log(`-- Create content descriptor checker "${regex.source}".`);
 	return regex;
 });
 
 function grabData($) {
-	return new Promise((res, rej) => {
-		const numberExtrator = /\D*(\d+)\D*/g;
-		let data = [];
+	var numberExtrator = /\D*(\d+)\D*/g;
+	var data = [];
 
-		console.log(`>> Start grab data from html content.`);
+	console.log('>> Start grab data from html content.');
 
-		$('table.wikitable > tbody > tr').each((i, tr) => {			
-			let text = $(tr).text();			
-			let isMatch = contentCheckers.some((checker) => checker.test(text));
+	$('table.wikitable > tbody > tr').each(function(_, tr) {
+		var text = $(tr).text();            
+		var isMatch = contentCheckers.some((checker) => checker.test(text));
 
-			if (isMatch) {
-				console.log(`-- Match content descriptor "${text}".`);
+		if (isMatch) {
+			console.log('-- Match content descriptor "%s".', text);
 
-				data.push({ 
-					'Event': $(tr).find('a').text(),
-					'Total': parseInt($(tr).find('td').eq(1).text()),
-					'This week': parseInt($(tr).find('td').eq(2).text())
-				});
-			}
-		});
-
-		console.log(`<< End grab data from html content.`);
-
-		res(data);
+			data.push({ 
+				'Event': $(tr).find('a').text(),
+				'Total': parseInt($(tr).find('td').eq(1).text()),
+				'This week': parseInt($(tr).find('td').eq(2).text())
+			});
+		}
 	});
-	
+
+	console.log('<< End grab data from html content.');
+
+	return data;
 }
 
 function escapeRegExp(text) {
-  return text; //.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
 }
 
+console.log('>> Load html content.');
 
-console.log(`>> Load html content.`);
+request('http://wiki.parkrun.info/index.php/Registrations_this_Week', function(err, resp, body) {
+	console.log('<< Loaded html content.');
+	
+	var $body = cheerio.load(body);
+	var data = grabData($body);
 
-request(options)
-    .then(function ($) {
-    	console.log(`<< Loaded html content.`);
-    	return grabData($);        
-    })
-    .then((data) => {
-    	console.log(`>> Save data to files.`);
+	console.log('>> Save data to files.');
 
-    	if (!data || !data.length) {
-    		console.log(`<< Nothing to save.`);
-    		return;
-    	}
+	if (!data || !data.length) {
+		console.log('<< Nothing to save.');
+		return;
+	}
 
-    	let outDir = path.join(__dirname, './out');
+		var outDir = path.join(__dirname, './out');
 
-		if (!fs.existsSync(outDir)){
-		    fs.mkdirSync(outDir);
-		}    	
+	if (!fs.existsSync(outDir)){
+		fs.mkdirSync(outDir);
+	}       
 
-    	let date = new Date();
-    	date = [
-    		date.getFullYear(),
-    		date.getMonth() < 10 ? '0' + date.getMonth() : date.getMonth(),
-    		date.getDate() < 10 ? '0' + date.getDate() : date.getDate()
-    	].join('-');
+	var date = new Date();
+	date = [
+		date.getFullYear(),
+		date.getMonth() < 10 ? '0' + date.getMonth() : date.getMonth(),
+		date.getDate() < 10 ? '0' + date.getDate() : date.getDate()
+	].join('-');
 
-    	data.forEach((event) => {
-    		let fileName = event['Event'].toLowerCase().replace(/\s{2,}/g, '').replace(/\s/g, '-') + '.csv';
-    		fileName = path.join(__dirname, './out', fileName);
-    		fs.appendFileSync(fileName, date + ' ' + event['Total'] + '\n');
-    	});
+	data.forEach(function(event) {
+		var fileName = event['Event'].toLowerCase().replace(/\s{2,}/g, '').replace(/\s/g, '-') + '.csv';
+		fileName = path.join(__dirname, './out', fileName);
+		fs.appendFileSync(fileName, date + ' ' + event['Total'] + '\n');
+	});
 
-    	console.log(`<< Saved data to ${data.length} files.`);
-    })
-    .catch(function (err) {
-        console.error(err);
-        process.exit(1);
-    });
+	console.log('<< Saved data to %s files.', data.length);
+});
