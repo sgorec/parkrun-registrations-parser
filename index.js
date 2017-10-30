@@ -10,12 +10,10 @@ var contentDescriptors = fs.readFileSync(path.join(__dirname, './content-descrip
 	.split(/\n|\r/)
 	.filter(function(string) { return !!string.trim(); });
 
-console.log('<< Loaded %s descriptors.', contentDescriptors.length);
+console.log('<< Loaded %s descriptor(s).', contentDescriptors.length);
 
 var contentCheckers = contentDescriptors.map(function(descriptor) {
-	var regex = new RegExp(escapeRegExp(descriptor.trim()), 'i');
-	console.log(`-- Create content descriptor checker "${regex.source}".`);
-	return regex;
+	return new RegExp(escapeRegExp(descriptor.trim()), 'i');
 });
 
 function grabData($) {
@@ -26,13 +24,15 @@ function grabData($) {
 
 	$('table.wikitable > tbody > tr').each(function(_, tr) {
 		var text = $(tr).text();            
-		var isMatch = contentCheckers.some((checker) => checker.test(text));
+		var isMatch = contentCheckers.some(function(checker) { return checker.test(text); });
 
 		if (isMatch) {
-			console.log('-- Match content descriptor "%s".', text);
+			var eventName = $(tr).find('a').text();
+
+			console.log('Match event "%s".', eventName);
 
 			data.push({ 
-				'Event': $(tr).find('a').text(),
+				'Event': eventName,
 				'Total': parseInt($(tr).find('td').eq(1).text()),
 				'This week': parseInt($(tr).find('td').eq(2).text())
 			});
@@ -63,7 +63,7 @@ request('http://wiki.parkrun.info/index.php/Registrations_this_Week', function(e
 		return;
 	}
 
-		var outDir = path.join(__dirname, './out');
+	var outDir = path.join(__dirname, './out');
 
 	if (!fs.existsSync(outDir)){
 		fs.mkdirSync(outDir);
