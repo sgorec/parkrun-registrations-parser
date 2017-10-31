@@ -48,6 +48,10 @@ function escapeRegExp(text) {
   return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
 }
 
+function leadZero(num) {
+	return (num < 10 ? '0' : '') + num;
+}
+
 console.log('>> Load html content.');
 
 request('http://wiki.parkrun.info/index.php/Registrations_this_Week', function(err, resp, body) {
@@ -72,8 +76,8 @@ request('http://wiki.parkrun.info/index.php/Registrations_this_Week', function(e
 	var date = new Date();
 	date = [
 		date.getFullYear(),
-		date.getMonth() < 10 ? '0' + date.getMonth() : date.getMonth(),
-		date.getDate() < 10 ? '0' + date.getDate() : date.getDate()
+		leadZero(date.getMonth() + 1),
+		leadZero(date.getDate())
 	].join('-');
 
 	data.forEach(function(event) {
